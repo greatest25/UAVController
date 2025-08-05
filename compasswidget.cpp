@@ -59,8 +59,8 @@ void CompassWidget::paintEvent(QPaintEvent *event)
     // 绘制速度指示器
     drawSpeedIndicator(painter);
 
-    // 绘制方向文字
-    drawDirectionText(painter);
+    // 注释掉方向文字绘制，让指南针更简洁
+    // drawDirectionText(painter);
 }
 
 void CompassWidget::updateAnimation()

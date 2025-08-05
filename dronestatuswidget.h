@@ -21,7 +21,7 @@ struct DroneStatusInfo {
     bool isOnline;       // 是否在线
     QString team;        // 队伍 ("B" 或 "R")
 
-    DroneStatusInfo() : hp(100), position(0, 0), isOnline(false) {}
+    DroneStatusInfo() : hp(0), position(0, 0), isOnline(false) {} // 初始hp设为0，表示未知状态
 };
 
 class DroneStatusWidget : public QWidget

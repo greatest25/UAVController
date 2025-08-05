@@ -49,6 +49,7 @@ private:
     void drawFlightInfo(QPainter &painter);
     void drawHealthIndicator(QPainter &painter);
     void setupDroneComboBox();
+    QString getDirectionText(double angle) const; // 添加方向文字转换函数
     
     QString m_selectedDrone;
     QPoint m_position;

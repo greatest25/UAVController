@@ -177,6 +177,23 @@ void FlightControlWidget::drawFlightInfo(QPainter &painter)
         painter.drawText(15, y, line);  // 调整x坐标与标题对齐
         y += lineHeight;
     }
+
+    // 添加方向描述
+    QString directionText = getDirectionText(m_heading);
+    painter.drawText(15, y, QString("朝向: %1").arg(directionText));
+}
+
+// 添加方向文字转换函数
+QString FlightControlWidget::getDirectionText(double angle) const
+{
+    if (angle >= 337.5 || angle < 22.5) return "北";
+    else if (angle >= 22.5 && angle < 67.5) return "东北";
+    else if (angle >= 67.5 && angle < 112.5) return "东";
+    else if (angle >= 112.5 && angle < 157.5) return "东南";
+    else if (angle >= 157.5 && angle < 202.5) return "南";
+    else if (angle >= 202.5 && angle < 247.5) return "西南";
+    else if (angle >= 247.5 && angle < 292.5) return "西";
+    else return "西北";
 }
 
 void FlightControlWidget::drawHealthIndicator(QPainter &painter)
@@ -373,13 +390,13 @@ void CustomDashboard::setupLayout()
 
     // 第一行：蓝队状态、雷达、红队状态
     int compactHeight = sectionHeight * 0.85;
-    m_blueTeamRect = QRect(handleBodyRect.left() + margin, handleBodyRect.top() + margin,
+    m_blueTeamRect = QRect(handleBodyRect.left() + margin+10, handleBodyRect.top() + margin + 18, // 增加12像素，将蓝队状态面板往下移动
                           sectionWidth * 0.6, compactHeight);
     // 缩小雷达区域宽度和高度
     m_radarRect = QRect(handleBodyRect.left() + margin * 2 + sectionWidth * 0.6 + 30,
                        handleBodyRect.top() + margin + 12, // 从8增加到12，将雷达往下移动
                        sectionWidth * 0.95, sectionHeight * 0.85);
-    m_redTeamRect = QRect(handleBodyRect.left() + margin * 3 + sectionWidth * 2.4, handleBodyRect.top() + margin,
+    m_redTeamRect = QRect(handleBodyRect.left() + margin * 3 + sectionWidth * 2.4, handleBodyRect.top() + margin + 18, // 增加12像素，将红队状态面板往下移动
                          sectionWidth * 0.6, compactHeight);
 
     // 第二行：摇杆、飞行控制、指南针 - 左移指南针和飞行控制面板

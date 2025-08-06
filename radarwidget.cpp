@@ -6,8 +6,8 @@ RadarWidget::RadarWidget(QWidget *parent)
     , m_sweepAngle(0)
 {
     // 设置合适的大小，允许缩放
-    setMinimumSize(300, 200);
-    setMaximumSize(500, 350);
+    setMinimumSize(200, 150); // 减小最小尺寸
+    setMaximumSize(400, 300); // 减小最大尺寸
     
     // 初始化颜色
     m_backgroundColor = QColor(0, 20, 0);      // 深绿色背景
@@ -46,12 +46,7 @@ void RadarWidget::updateDroneInfo(const QString &uid, const QPoint &pos, const Q
 
 void RadarWidget::addObstacle(const QString &id, const QPoint &pos, int radius, ObstacleType type)
 {
-    ObstacleInfo info;
-    info.position = pos;
-    info.radius = radius;
-    info.type = type;
-    info.lastUpdate = QDateTime::currentDateTime();
-    
+    ObstacleInfo info(id, type, pos.x(), pos.y(), radius);
     m_obstacles[id] = info;
     update();
 }
@@ -62,8 +57,8 @@ void RadarWidget::clearStaleObstacles(int timeoutMs)
     QStringList staleIds;
     
     for (auto it = m_obstacles.begin(); it != m_obstacles.end(); ++it) {
-        if (it.value().type == CLOUD_OBS && 
-            it.value().lastUpdate.msecsTo(currentTime) > timeoutMs) {
+        if (it.value().type == Cloud && 
+            it.value().timestamp.msecsTo(currentTime) > timeoutMs) {
             staleIds.append(it.key());
         }
     }
@@ -124,30 +119,34 @@ void RadarWidget::updateRadar()
 
 void RadarWidget::drawRadarBackground(QPainter &painter)
 {
-    // 填充背景
-    painter.fillRect(rect(), m_backgroundColor);
+    // 计算雷达显示区域
+    QPoint center(width() / 2, height() / 2);
+    int maxRadius = qMin(width(), height()) / 2 - 8; // 留出8像素边距确保完整显示
+    
+    // 绘制圆形背景
+    painter.setPen(QPen(m_backgroundColor, 1));
+    painter.setBrush(QBrush(m_backgroundColor));
+    painter.drawEllipse(center, maxRadius, maxRadius);
     
     // 绘制同心圆网格
     painter.setPen(QPen(m_gridColor, 1));
     painter.setBrush(Qt::NoBrush);
     
-    QPoint center(width() / 2, height() / 2);
-    int maxRadius = qMin(width(), height()) / 2 - 5; // 减少边距
-    
-    // 绘制同心圆（每50像素一个圆）
-    for (int r = 50; r <= maxRadius; r += 50) {
+    // 绘制同心圆（每40像素一个圆，更密集）
+    for (int r = 40; r <= maxRadius; r += 40) {
         painter.drawEllipse(center, r, r);
     }
     
     // 绘制十字线
-    painter.drawLine(center.x(), 5, center.x(), height() - 5);
-    painter.drawLine(5, center.y(), width() - 5, center.y());
+    painter.drawLine(center.x(), center.y() - maxRadius, center.x(), center.y() + maxRadius);
+    painter.drawLine(center.x() - maxRadius, center.y(), center.x() + maxRadius, center.y());
     
-    // 绘制对角线
-    painter.drawLine(center.x() - maxRadius * 0.7, center.y() - maxRadius * 0.7,
-                     center.x() + maxRadius * 0.7, center.y() + maxRadius * 0.7);
-    painter.drawLine(center.x() - maxRadius * 0.7, center.y() + maxRadius * 0.7,
-                     center.x() + maxRadius * 0.7, center.y() - maxRadius * 0.7);
+    // 绘制对角线（缩短长度，避免超出边界）
+    int diagonalLength = maxRadius * 0.6;
+    painter.drawLine(center.x() - diagonalLength, center.y() - diagonalLength,
+                     center.x() + diagonalLength, center.y() + diagonalLength);
+    painter.drawLine(center.x() - diagonalLength, center.y() + diagonalLength,
+                     center.x() + diagonalLength, center.y() - diagonalLength);
 }
 
 void RadarWidget::drawDetectionRange(QPainter &painter)
@@ -157,26 +156,27 @@ void RadarWidget::drawDetectionRange(QPainter &painter)
     painter.setBrush(Qt::NoBrush);
     
     QPoint center(width() / 2, height() / 2);
-    int displayRadius = qMin(width(), height()) / 2 - 10; // 减少边距
+    int maxRadius = qMin(width(), height()) / 2 - 8; // 与背景保持一致
     
-    painter.drawEllipse(center, displayRadius, displayRadius);
+    painter.drawEllipse(center, maxRadius, maxRadius);
 }
 
 void RadarWidget::drawObstacles(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
-    int maxDisplayRadius = qMin(width(), height()) / 2 - 10; // 减少边距
+    int maxDisplayRadius = qMin(width(), height()) / 2 - 8; // 与背景保持一致
     
     for (auto it = m_obstacles.begin(); it != m_obstacles.end(); ++it) {
         const ObstacleInfo &obstacle = it.value();
         
         // 检查障碍物是否在探测范围内
-        if (!isInDetectionRange(obstacle.position)) {
+        QPoint worldPos(obstacle.x, obstacle.y);
+        if (!isInDetectionRange(worldPos)) {
             continue;
         }
         
         // 转换到雷达坐标
-        QPoint radarPos = worldToRadar(obstacle.position);
+        QPoint radarPos = worldToRadar(worldPos);
         
         // 计算显示半径
         double scale = (double)maxDisplayRadius / DETECTION_RADIUS;
@@ -184,13 +184,13 @@ void RadarWidget::drawObstacles(QPainter &painter)
         
         // 根据类型绘制不同的形状和图标
         switch (obstacle.type) {
-            case MOUNTAIN_OBS:
+            case Mountain:
                 drawMountainObstacle(painter, radarPos, displayRadius);
                 break;
-            case RADAR_OBS:
+            case Radar:
                 drawRadarObstacle(painter, radarPos, displayRadius);
                 break;
-            case CLOUD_OBS:
+            case Cloud:
                 drawCloudObstacle(painter, radarPos, displayRadius);
                 break;
         }
@@ -241,7 +241,7 @@ void RadarWidget::drawDrones(QPainter &painter)
 void RadarWidget::drawRadarSweep(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
-    int maxRadius = qMin(width(), height()) / 2 - 10; // 减少边距
+    int maxRadius = qMin(width(), height()) / 2 - 8; // 与背景保持一致
     
     // 绘制扫描线
     painter.setPen(QPen(QColor(0, 255, 0, 150), 2));
@@ -265,7 +265,7 @@ void RadarWidget::drawRadarSweep(QPainter &painter)
 QPoint RadarWidget::worldToRadar(const QPoint &worldPos) const
 {
     QPoint center(width() / 2, height() / 2);
-    int maxDisplayRadius = qMin(width(), height()) / 2 - 10; // 减少边距
+    int maxDisplayRadius = qMin(width(), height()) / 2 - 8; // 与背景保持一致
     
     // 计算相对于当前无人机的位置
     QPoint relativePos = worldPos - m_currentDronePos;

@@ -12,6 +12,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include <QDebug>
+#include "obstacle_types.h"
 #include "customdashboard.h"
 #include "radarwidget.h"
 

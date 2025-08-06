@@ -259,17 +259,27 @@ void CustomWindow::processGameData(const QString &jsonData)
                 // 转换障碍物类型
                 ObstacleType obsType;
                 if (type == "mountain") {
-                    obsType = MOUNTAIN_OBS;
+                    obsType = Mountain;
                 } else if (type == "radar") {
-                    obsType = RADAR_OBS;
+                    obsType = Radar;
                 } else if (type == "cloud") {
-                    obsType = CLOUD_OBS;
+                    obsType = Cloud;
                 } else {
                     continue; // 未知类型，跳过
                 }
 
                 // 添加到雷达显示
                 m_dashboard->addObstacle(id, QPoint(x, y), r, obsType);
+                
+                // 添加调试输出，显示障碍物的实际半径
+                QString typeStr;
+                switch (obsType) {
+                    case Mountain: typeStr = "Mountain"; break;
+                    case Radar: typeStr = "Radar"; break;
+                    case Cloud: typeStr = "Cloud"; break;
+                    default: typeStr = "Unknown"; break;
+                }
+                qDebug() << "[VSOA] Parsed obstacle:" << id << "at (" << x << "," << y << ") radius" << r << "type" << typeStr;
             }
         }
     }

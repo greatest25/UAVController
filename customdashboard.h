@@ -15,6 +15,7 @@
 #include "radarwidget.h"
 #include "compasswidget.h"
 #include "joystickwidget.h"
+#include "minimapwidget.h"
 
 // 前向声明，避免重复定义
 class CompassWidget;
@@ -86,6 +87,16 @@ public:
     void setSelectedDrone(const QString &droneId);
     void setCompassHeading(double heading);
     
+    // 全局缩略地图相关方法
+    void updateMinimapDroneInfo(const QString &droneId, const QPoint &pos, const QString &team, int hp, bool online, double heading = 0.0);
+    void setMinimapMapBounds(const QRect &bounds);
+    void setMinimapZoomLevel(double zoom);
+    
+    // 全局缩略地图障碍物相关方法
+    void addMinimapObstacle(const QString &id, const QPoint &pos, int radius, ObstacleType type);
+    void clearMinimapObstacles();
+    void clearMinimapStaleObstacles(int timeoutMs = 1000);
+    
     // 雷达相关
     void addObstacle(const QString &id, const QPoint &pos, int radius,
                     ObstacleType type);
@@ -112,6 +123,8 @@ private:
     // 手柄外形绘制
     void drawHandleShape(QPainter &painter);
     void drawHandleGrip(QPainter &painter);
+    // 绘制缩略图图例
+    void drawMinimapLegend(QPainter &painter);
     
     // 子控件
     DroneStatusWidget *m_blueTeamStatus;
@@ -120,6 +133,7 @@ private:
     CompassWidget *m_compassWidget;
     FlightControlWidget *m_flightControlWidget;
     JoystickWidget *m_joystickWidget;
+    MinimapWidget *m_minimapWidget;
     
     // 布局参数
     QRect m_blueTeamRect;
@@ -128,6 +142,7 @@ private:
     QRect m_compassRect;
     QRect m_flightControlRect;
     QRect m_joystickRect;
+    QRect m_minimapRect;
     
     // 颜色主题
     QColor m_backgroundColor;

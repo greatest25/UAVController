@@ -9,21 +9,7 @@
 #include <QColor>
 #include <QtMath>
 #include <QDateTime>
-
-// 障碍物类型枚举
-enum ObstacleType {
-    MOUNTAIN_OBS = 1,    // 山体障碍物 - 绿色
-    RADAR_OBS = 2,       // 雷达障碍物 - 紫色  
-    CLOUD_OBS = 3        // 雷云障碍物 - 黄色（动态）
-};
-
-// 障碍物信息结构
-struct ObstacleInfo {
-    QPoint position;     // 障碍物位置
-    int radius;          // 障碍物半径
-    ObstacleType type;   // 障碍物类型
-    QDateTime lastUpdate; // 最后更新时间（用于动态障碍物）
-};
+#include "obstacle_types.h"
 
 // 无人机信息结构
 struct RadarDroneInfo {

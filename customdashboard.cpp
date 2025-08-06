@@ -2,6 +2,7 @@
 #include <QPaintEvent>
 #include <QResizeEvent>
 #include <QtMath>
+#include <QDebug>
 
 // CompassWidget 实现已移至 compasswidget.cpp
 
@@ -256,10 +257,24 @@ CustomDashboard::CustomDashboard(QWidget *parent)
     m_compassWidget = new CompassWidget(this);
     m_flightControlWidget = new FlightControlWidget(this);
     m_joystickWidget = new JoystickWidget(this);
+    m_minimapWidget = new MinimapWidget(this);
 
     // 连接无人机选择信号（只保留飞行控制面板的下拉选择）
     connect(m_flightControlWidget, &FlightControlWidget::droneChanged,
             this, &CustomDashboard::setSelectedDrone);
+    
+    // 连接全局缩略地图的无人机点击信号
+    connect(m_minimapWidget, &MinimapWidget::droneClicked,
+            this, &CustomDashboard::setSelectedDrone);
+            
+    // 设置全局缩略地图的初始地图边界和缩放级别
+    m_minimapWidget->setMapBounds(QRect(0, 0, 1280, 800));
+    m_minimapWidget->setZoomLevel(0.8); // 增大缩放级别，使地图更清晰
+    
+    // // 设置初始无人机位置，蓝方在地图右下角
+    // m_minimapWidget->updateDroneInfo("B1", QPoint(1100, 100), "B", 100, true);
+    // m_minimapWidget->updateDroneInfo("B2", QPoint(1200, 0), "B", 100, true);
+    // m_minimapWidget->updateDroneInfo("B3", QPoint(1000, 200), "B", 100, true);
 
     setupLayout();
 }
@@ -268,8 +283,12 @@ void CustomDashboard::updateDroneInfo(const QString &droneId, int hp, const QPoi
 {
     if (droneId.startsWith("B")) {
         m_blueTeamStatus->updateDroneInfo(droneId, hp, pos, online);
+        // 同时更新全局缩略地图
+        m_minimapWidget->updateDroneInfo(droneId, pos, "B", hp, online);
     } else if (droneId.startsWith("R")) {
         m_redTeamStatus->updateDroneInfo(droneId, hp, pos, online);
+        // 同时更新全局缩略地图
+        m_minimapWidget->updateDroneInfo(droneId, pos, "R", hp, online);
     }
 }
 
@@ -282,11 +301,21 @@ void CustomDashboard::updateFlightInfo(const QString &droneId, const QPoint &pos
                                       double heading, double altitude, int hp)
 {
     m_flightControlWidget->updateDroneStatus(droneId, pos, speed, heading, altitude, hp);
+    
+    // 添加调试输出
+    if (droneId == m_flightControlWidget->getSelectedDrone()) {
+        qDebug() << "[Dashboard] Selected Drone" << droneId << "World Pos:" << pos;
+    }
+
+    // 同时更新全局缩略地图的方向信息
+    QString team = droneId.startsWith("B") ? "B" : "R";
+    m_minimapWidget->updateDroneInfo(droneId, pos, team, hp, true, heading);
 }
 
 void CustomDashboard::setSelectedDrone(const QString &droneId)
 {
     m_flightControlWidget->setSelectedDrone(droneId);
+    m_minimapWidget->setSelectedDrone(droneId);
 
     // 通知外部选中状态改变
     emit droneSelectionChanged(droneId);
@@ -297,17 +326,63 @@ void CustomDashboard::setCompassHeading(double heading)
     m_compassWidget->setDirection(heading);
 }
 
+// 全局缩略地图相关方法实现
+void CustomDashboard::updateMinimapDroneInfo(const QString &droneId, const QPoint &pos, const QString &team, int hp, bool online, double heading)
+{
+    m_minimapWidget->updateDroneInfo(droneId, pos, team, hp, online, heading);
+}
+
+void CustomDashboard::setMinimapMapBounds(const QRect &bounds)
+{
+    m_minimapWidget->setMapBounds(bounds);
+}
+
+void CustomDashboard::setMinimapZoomLevel(double zoom)
+{
+    m_minimapWidget->setZoomLevel(zoom);
+}
+
+// 全局缩略地图障碍物相关方法实现
+void CustomDashboard::addMinimapObstacle(const QString &id, const QPoint &pos, int radius, ObstacleType type)
+{
+    m_minimapWidget->addObstacle(id, pos.x(), pos.y(), radius, type);
+}
+
+void CustomDashboard::clearMinimapObstacles()
+{
+    m_minimapWidget->clearObstacles();
+}
+
+void CustomDashboard::clearMinimapStaleObstacles(int timeoutMs)
+{
+    m_minimapWidget->clearStaleObstacles(timeoutMs);
+}
+
 
 
 void CustomDashboard::addObstacle(const QString &id, const QPoint &pos, int radius,
                                  ObstacleType type)
 {
     m_radarWidget->addObstacle(id, pos, radius, type);
+    // 同时更新缩略图
+    m_minimapWidget->addObstacle(id, pos.x(), pos.y(), radius, type);
+    
+    // 添加调试输出
+    QString typeStr;
+    switch (type) {
+        case Mountain: typeStr = "Mountain"; break;
+        case Radar: typeStr = "Radar"; break;
+        case Cloud: typeStr = "Cloud"; break;
+        default: typeStr = "Unknown"; break;
+    }
+    qDebug() << "[Dashboard] Added obstacle to minimap:" << id << "at" << pos << "radius" << radius << "type" << typeStr;
 }
 
 void CustomDashboard::clearObstacles()
 {
     m_radarWidget->clearObstacles();
+    // 同时清除缩略图的障碍物
+    m_minimapWidget->clearObstacles();
 }
 
 void CustomDashboard::setCurrentDronePosition(const QPoint &pos)
@@ -362,7 +437,8 @@ void CustomDashboard::paintEvent(QPaintEvent *event)
     drawBackground(painter);
     drawHandleShape(painter);   // 先画手柄主体
     drawHandleGrip(painter);    // 再画握把
-    drawSectionTitles(painter); // 最后画内容
+    drawSectionTitles(painter); // 画内容
+    drawMinimapLegend(painter); // 绘制缩略图图例
 }
 
 void CustomDashboard::resizeEvent(QResizeEvent *event)
@@ -392,14 +468,14 @@ void CustomDashboard::setupLayout()
     int compactHeight = sectionHeight * 0.85;
     m_blueTeamRect = QRect(handleBodyRect.left() + margin+10, handleBodyRect.top() + margin + 18, // 增加12像素，将蓝队状态面板往下移动
                           sectionWidth * 0.6, compactHeight);
-    // 缩小雷达区域宽度和高度
-    m_radarRect = QRect(handleBodyRect.left() + margin * 2 + sectionWidth * 0.6 + 30,
-                       handleBodyRect.top() + margin + 12, // 从8增加到12，将雷达往下移动
-                       sectionWidth * 0.95, sectionHeight * 0.85);
+    // 全局缩略地图 - 放在顶部中间，增大尺寸
+    m_minimapRect = QRect(handleBodyRect.left() + margin * 2 + sectionWidth * 0.6 + 20,
+                       handleBodyRect.top() + margin + 15,
+                       sectionWidth * 1.5, sectionHeight * 1.05);
     m_redTeamRect = QRect(handleBodyRect.left() + margin * 3 + sectionWidth * 2.4, handleBodyRect.top() + margin + 18, // 增加12像素，将红队状态面板往下移动
                          sectionWidth * 0.6, compactHeight);
 
-    // 第二行：摇杆、飞行控制、指南针 - 左移指南针和飞行控制面板
+    // 第二行：摇杆、飞行控制、指南针、全局缩略地图
     int joystickOffsetX = -8; // 向左偏移8像素  
     int joystickOffsetY = -8; // 向上偏移8像素
     int bottomY = handleBodyRect.top() + margin * 2 + sectionHeight + spacing;
@@ -412,11 +488,17 @@ void CustomDashboard::setupLayout()
                                bottomY + (sectionHeight - compactFlightHeight) / 2,
                                compactFlightWidth, compactFlightHeight);
     
-    // 指南针左移
-    int compassSize = qMin(sectionWidth, sectionHeight) * 0.8;
-    int compassX = handleBodyRect.left() + margin * 3 + sectionWidth * 2 + (sectionWidth - compassSize) / 2 - 100; // 左移80像素
-    int compassY = bottomY + (sectionHeight - compassSize) / 2;
+    // 指南针左移，为雷达腾出更多空间
+    int compassSize = qMin(sectionWidth, sectionHeight) * 0.85; // 减小指南针尺寸
+    int compassX = handleBodyRect.left() + margin * 3 + sectionWidth * 2 + (sectionWidth - compassSize) / 2 - 110; // 进一步左移
+    int compassY = bottomY + (sectionHeight - compassSize) / 2 -5;
     m_compassRect = QRect(compassX, compassY, compassSize, compassSize);
+    
+    // 雷达显示 - 调整位置和大小，确保完整显示
+    int radarSize = qMin(sectionWidth, sectionHeight) * 0.98; // 适当调整雷达尺寸
+    int radarX = handleBodyRect.right() - margin - radarSize -5; // 放在右侧边缘，留出一些边距
+    int radarY = bottomY + (sectionHeight - radarSize) / 2 - 10;
+    m_radarRect = QRect(radarX, radarY, radarSize, radarSize);
 
     // 调整子控件位置和大小
     m_blueTeamStatus->setGeometry(m_blueTeamRect);
@@ -425,6 +507,7 @@ void CustomDashboard::setupLayout()
     m_flightControlWidget->setGeometry(m_flightControlRect);
     m_joystickWidget->setGeometry(m_joystickRect);
     m_compassWidget->setGeometry(m_compassRect);
+    m_minimapWidget->setGeometry(m_minimapRect);
 }
 
 void CustomDashboard::drawBackground(QPainter &painter)
@@ -453,6 +536,50 @@ void CustomDashboard::drawSectionTitles(QPainter &painter)
         painter.drawText(titleRects[i], Qt::AlignCenter, m_sectionTitles[i]);
     }
     */
+}
+
+// 绘制缩略图图例 - 放在蓝方和红方信息栏之间的位置
+void CustomDashboard::drawMinimapLegend(QPainter &painter)
+{
+    // 设置字体
+    QFont legendFont("Arial", 10);
+    painter.setFont(legendFont);
+    
+    // 图例位置 - 放在蓝方无人机信息栏和红方无人机信息栏之间
+    // 计算图例位置 - 在缩略图右侧，蓝方和红方信息栏之间
+    int legendX = m_minimapRect.right() + 8; // 缩略图右侧8像素
+    int legendY = m_minimapRect.top() + 15;   // 顶部留白
+    
+    const int itemHeight = 18;    // 减小每行高度，适应更多图例项
+    const int iconSize = 8;       // 图标大小
+    const int margin = 5;         // 边距
+    const int textWidth = 35;     // 减小文本宽度
+    
+    // 垂直排列的图例项
+    const QList<QPair<QColor, QString>> legendItems = {
+        {m_minimapWidget->getBlueTeamColor(), "蓝队"},
+        {m_minimapWidget->getRedTeamColor(), "红队"},
+        {m_minimapWidget->getSelectedColor(), "选中"},
+        {m_minimapWidget->getOfflineColor(), "未知"},
+        {Qt::white, "阵亡"},
+        {m_minimapWidget->getMountainColor(), "山体"},
+        {m_minimapWidget->getRadarColor(), "雷达"},
+        {m_minimapWidget->getCloudColor(), "雷云"}
+    };
+    
+    // 绘制垂直图例
+    for (const auto& item : legendItems) {
+        // 绘制图标（圆形）
+        painter.setPen(QPen(item.first, 1));
+        painter.setBrush(QBrush(item.first));
+        painter.drawEllipse(legendX, legendY + itemHeight/2 - iconSize/2, iconSize, iconSize);
+        
+        // 绘制文本（白色）
+        painter.setPen(Qt::white);
+        painter.drawText(QRect(legendX + iconSize + margin, legendY, textWidth, itemHeight), 
+                        Qt::AlignLeft | Qt::AlignVCenter, item.second);
+        legendY += itemHeight;
+    }
 }
 
 void CustomDashboard::resetAllData()
@@ -494,5 +621,10 @@ void CustomDashboard::resetAllData()
     // 重置摇杆
     if (m_joystickWidget) {
         m_joystickWidget->resetJoystick();
+    }
+
+    // 重置全局缩略地图
+    if (m_minimapWidget) {
+        m_minimapWidget->clearAll();
     }
 }

@@ -15,7 +15,8 @@ SOURCES += \
     joystickwidget.cpp \
     dronestatuswidget.cpp \
     customdashboard.cpp \
-    customwindow.cpp
+    customwindow.cpp \
+    minimapwidget.cpp
 
 HEADERS += \
     radarwidget.h \
@@ -23,7 +24,9 @@ HEADERS += \
     joystickwidget.h \
     dronestatuswidget.h \
     customdashboard.h \
-    customwindow.h
+    customwindow.h \
+    minimapwidget.h \
+    obstacle_types.h
 
 # FORMS += \
 #     mainwindow.ui

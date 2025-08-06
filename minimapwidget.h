@@ -52,6 +52,8 @@ public:
     // 障碍物相关方法
     void addObstacle(const QString &id, double x, double y, double radius, ObstacleType type);
     void clearObstacles();
+    void clearDynamicObstacles();  // 只清除动态障碍物
+    void clearStaticObstacles();   // 只清除静态障碍物
     void clearStaleObstacles(int timeoutMs = 1000);
     
     // 获取颜色方法，用于外部绘制图例
@@ -76,6 +78,9 @@ private:
     void drawGrid(QPainter &painter);
     void drawDrones(QPainter &painter);
     void drawObstacles(QPainter &painter);
+    void drawMountainObstacle(QPainter &painter, const QPoint &pos, int radius);
+    void drawRadarObstacle(QPainter &painter, const QPoint &pos, int radius);
+    void drawCloudObstacle(QPainter &painter, const QPoint &pos, int radius);
     void drawLegend(QPainter &painter);
     
 

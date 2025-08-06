@@ -6,10 +6,20 @@
 
 // 障碍物类型枚举
 enum ObstacleType {
-    Mountain,   // 山体
-    Radar,      // 雷达站
-    Cloud       // 雷云
+    Mountain,   // 山体 - 静态障碍物
+    Radar,      // 雷达站 - 静态障碍物
+    Cloud       // 雷云 - 动态障碍物
 };
+
+// 判断障碍物是否为静态障碍物
+inline bool isStaticObstacle(ObstacleType type) {
+    return type == Mountain || type == Radar;
+}
+
+// 判断障碍物是否为动态障碍物
+inline bool isDynamicObstacle(ObstacleType type) {
+    return type == Cloud;
+}
 
 // 障碍物信息结构
 struct ObstacleInfo {

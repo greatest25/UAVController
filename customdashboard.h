@@ -16,6 +16,7 @@
 #include "compasswidget.h"
 #include "joystickwidget.h"
 #include "minimapwidget.h"
+#include "obstacle_types.h"
 
 // 前向声明，避免重复定义
 class CompassWidget;
@@ -95,6 +96,8 @@ public:
     // 全局缩略地图障碍物相关方法
     void addMinimapObstacle(const QString &id, const QPoint &pos, int radius, ObstacleType type);
     void clearMinimapObstacles();
+    void clearMinimapDynamicObstacles();  // 只清除动态障碍物
+    void clearMinimapStaticObstacles();   // 只清除静态障碍物
     void clearMinimapStaleObstacles(int timeoutMs = 1000);
     
     // 雷达相关

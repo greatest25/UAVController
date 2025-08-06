@@ -353,6 +353,16 @@ void CustomDashboard::clearMinimapObstacles()
     m_minimapWidget->clearObstacles();
 }
 
+void CustomDashboard::clearMinimapDynamicObstacles()
+{
+    m_minimapWidget->clearDynamicObstacles();
+}
+
+void CustomDashboard::clearMinimapStaticObstacles()
+{
+    m_minimapWidget->clearStaticObstacles();
+}
+
 void CustomDashboard::clearMinimapStaleObstacles(int timeoutMs)
 {
     m_minimapWidget->clearStaleObstacles(timeoutMs);
@@ -363,26 +373,30 @@ void CustomDashboard::clearMinimapStaleObstacles(int timeoutMs)
 void CustomDashboard::addObstacle(const QString &id, const QPoint &pos, int radius,
                                  ObstacleType type)
 {
+    // 更新雷达显示（保持原有逻辑不变）
     m_radarWidget->addObstacle(id, pos, radius, type);
-    // 同时更新缩略图
+    
+    // 更新缩略图（实现静态障碍物永久保留）
     m_minimapWidget->addObstacle(id, pos.x(), pos.y(), radius, type);
     
     // 添加调试输出
     QString typeStr;
+    QString staticStr = isStaticObstacle(type) ? " (Static)" : " (Dynamic)";
     switch (type) {
         case Mountain: typeStr = "Mountain"; break;
         case Radar: typeStr = "Radar"; break;
         case Cloud: typeStr = "Cloud"; break;
         default: typeStr = "Unknown"; break;
     }
-    qDebug() << "[Dashboard] Added obstacle to minimap:" << id << "at" << pos << "radius" << radius << "type" << typeStr;
+    qDebug() << "[Dashboard] Added obstacle to minimap:" << id << "at" << pos << "radius" << radius 
+             << "type" << typeStr << staticStr;
 }
 
 void CustomDashboard::clearObstacles()
 {
+    // 只清除雷达中的障碍物，不影响缩略图
     m_radarWidget->clearObstacles();
-    // 同时清除缩略图的障碍物
-    m_minimapWidget->clearObstacles();
+    // 注意：缩略图中的静态障碍物会永久保留，只有动态障碍物会被定期清除
 }
 
 void CustomDashboard::setCurrentDronePosition(const QPoint &pos)
@@ -555,20 +569,17 @@ void CustomDashboard::drawMinimapLegend(QPainter &painter)
     const int margin = 5;         // 边距
     const int textWidth = 35;     // 减小文本宽度
     
-    // 垂直排列的图例项
-    const QList<QPair<QColor, QString>> legendItems = {
+    // 绘制无人机图例项
+    const QList<QPair<QColor, QString>> droneLegendItems = {
         {m_minimapWidget->getBlueTeamColor(), "蓝队"},
         {m_minimapWidget->getRedTeamColor(), "红队"},
         {m_minimapWidget->getSelectedColor(), "选中"},
         {m_minimapWidget->getOfflineColor(), "未知"},
-        {Qt::white, "阵亡"},
-        {m_minimapWidget->getMountainColor(), "山体"},
-        {m_minimapWidget->getRadarColor(), "雷达"},
-        {m_minimapWidget->getCloudColor(), "雷云"}
+        {Qt::white, "阵亡"}
     };
     
-    // 绘制垂直图例
-    for (const auto& item : legendItems) {
+    // 绘制无人机图例
+    for (const auto& item : droneLegendItems) {
         // 绘制图标（圆形）
         painter.setPen(QPen(item.first, 1));
         painter.setBrush(QBrush(item.first));
@@ -580,6 +591,89 @@ void CustomDashboard::drawMinimapLegend(QPainter &painter)
                         Qt::AlignLeft | Qt::AlignVCenter, item.second);
         legendY += itemHeight;
     }
+    
+    // 绘制障碍物图例项 - 与缩略图中的显示方式保持一致 
+    // 山体障碍物图例
+    QColor mountainColor = m_minimapWidget->getMountainColor();
+    painter.setPen(QPen(mountainColor, 1));
+    painter.setBrush(QBrush(mountainColor));
+    painter.drawEllipse(legendX, legendY + itemHeight/2 - iconSize/2, iconSize, iconSize);
+    
+    // 绘制白色三角形图标
+    painter.setPen(QPen(Qt::white, 1));
+    painter.setBrush(QBrush(Qt::white));
+    QPolygon triangle;
+    int triangleSize = qMax(3, iconSize / 3);
+    triangle << QPoint(legendX + iconSize/2, legendY + itemHeight/2 - triangleSize)
+             << QPoint(legendX + iconSize/2 - triangleSize, legendY + itemHeight/2 + triangleSize/2)
+             << QPoint(legendX + iconSize/2 + triangleSize, legendY + itemHeight/2 + triangleSize/2);
+    painter.drawPolygon(triangle);
+    
+    painter.setPen(Qt::white);
+    painter.drawText(QRect(legendX + iconSize + margin, legendY, textWidth, itemHeight), 
+                    Qt::AlignLeft | Qt::AlignVCenter, "山体");
+    legendY += itemHeight;
+    
+    // 雷达站障碍物图例
+    QColor radarColor = m_minimapWidget->getRadarColor();
+    painter.setPen(QPen(radarColor, 1));
+    painter.setBrush(QBrush(radarColor));
+    painter.drawEllipse(legendX, legendY + itemHeight/2 - iconSize/2, iconSize, iconSize);
+    
+    // 绘制白色雷达扫描图标
+    painter.setPen(QPen(Qt::white, 1));
+    painter.setBrush(QBrush(Qt::white));
+    
+    // 绘制雷达底座（小矩形）
+    int radarBaseWidth = qMax(2, iconSize / 4);
+    int radarBaseHeight = qMax(1, iconSize / 8);
+    QRect radarBase(legendX + iconSize/2 - radarBaseWidth/2, 
+                   legendY + itemHeight/2 + radarBaseHeight, 
+                   radarBaseWidth, radarBaseHeight);
+    painter.drawRect(radarBase);
+    
+    // 绘制扫描扇形
+    painter.setBrush(QBrush(Qt::white, Qt::Dense4Pattern));
+    QRect scanArea(legendX + iconSize/2 - triangleSize, legendY + itemHeight/2 - triangleSize, 
+                   triangleSize * 2, triangleSize * 2);
+    painter.drawPie(scanArea, 45 * 16, 90 * 16); // 45度到135度的扇形
+    
+    painter.setPen(Qt::white);
+    painter.drawText(QRect(legendX + iconSize + margin, legendY, textWidth, itemHeight), 
+                    Qt::AlignLeft | Qt::AlignVCenter, "雷达站");
+    legendY += itemHeight;
+    
+    // 雷云障碍物图例
+    QColor cloudColor = m_minimapWidget->getCloudColor();
+    painter.setPen(QPen(cloudColor, 1));
+    painter.setBrush(QBrush(cloudColor));
+    painter.drawEllipse(legendX, legendY + itemHeight/2 - iconSize/2, iconSize, iconSize);
+    
+    // 绘制白色云朵图标
+    painter.setPen(QPen(Qt::white, 1));
+    painter.setBrush(QBrush(Qt::white));
+    
+    // 绘制多个重叠的小圆形组成云朵
+    int cloudSize = qMax(2, iconSize / 4);
+    painter.drawEllipse(legendX + iconSize/2 - cloudSize, legendY + itemHeight/2 - cloudSize/2, cloudSize, cloudSize);
+    painter.drawEllipse(legendX + iconSize/2 - cloudSize/2, legendY + itemHeight/2 - cloudSize, cloudSize, cloudSize);
+    painter.drawEllipse(legendX + iconSize/2, legendY + itemHeight/2 - cloudSize/2, cloudSize, cloudSize);
+    
+    // 绘制黄色闪电图标
+    painter.setPen(QPen(Qt::yellow, 1));
+    painter.setBrush(QBrush(Qt::yellow));
+    QPolygon lightning;
+    lightning << QPoint(legendX + iconSize/2 - 1, legendY + itemHeight/2 - cloudSize/3)
+              << QPoint(legendX + iconSize/2 + 1, legendY + itemHeight/2 - cloudSize/6)
+              << QPoint(legendX + iconSize/2, legendY + itemHeight/2)
+              << QPoint(legendX + iconSize/2 + 2, legendY + itemHeight/2 + cloudSize/3)
+              << QPoint(legendX + iconSize/2, legendY + itemHeight/2 + cloudSize/6)
+              << QPoint(legendX + iconSize/2 + 1, legendY + itemHeight/2);
+    painter.drawPolygon(lightning);
+    
+    painter.setPen(Qt::white);
+    painter.drawText(QRect(legendX + iconSize + margin, legendY, textWidth, itemHeight), 
+                    Qt::AlignLeft | Qt::AlignVCenter, "雷云");
 }
 
 void CustomDashboard::resetAllData()
@@ -626,5 +720,7 @@ void CustomDashboard::resetAllData()
     // 重置全局缩略地图
     if (m_minimapWidget) {
         m_minimapWidget->clearAll();
+        // 游戏重置时清除所有障碍物（包括静态和动态）
+        m_minimapWidget->clearObstacles();
     }
 }

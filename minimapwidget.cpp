@@ -9,7 +9,7 @@ MinimapWidget::MinimapWidget(QWidget *parent)
     : QWidget(parent)
     , m_selectedDrone("B1")
     , m_zoomLevel(1.0)
-    , m_droneSize(6)
+    , m_droneSize(4)
     , m_gridSpacing(50)
     , m_margin(10)
 {
@@ -43,7 +43,7 @@ void MinimapWidget::updateDroneInfo(const QString &droneId, const QPoint &pos, c
     info.position = pos;
     info.team = team;
     info.hp = hp;
-    info.online = online;`
+    info.online = online;
     info.heading = heading;
     info.id = droneId;
     
@@ -350,7 +350,7 @@ void MinimapWidget::drawObstacles(QPainter &painter)
         // 检查是否在可见区域内
         if (!mapRect.contains(widgetPos)) continue;
         
-        // 根据类型选择颜色
+        // 1. 根据类型选择颜色
         QColor obstacleColor;
         switch (obstacle.type) {
             case Mountain:
@@ -367,12 +367,20 @@ void MinimapWidget::drawObstacles(QPainter &painter)
                 break;
         }
         
-        // 计算显示半径比例
-        double scale = (double)m_mapBounds.width() / width(); // 地图到窗口的比例
-        int dotSize = qMax(10, static_cast<int>(obstacle.radius / ACTUAL_OBSTACLE_RADIUS * 10 * m_zoomLevel));
+        // 2. 计算无人机和障碍物的显示半径（关键修改）
+        const int droneDisplayRadius = qMax(2, static_cast<int>(DRONE_BASE_SIZE * m_zoomLevel / 2)); // 无人机视觉半径
+        
+        // 3. 计算缩放比例（匹配雷达的6~8倍比例）
+        double scale = static_cast<double>(width()) / m_mapBounds.width(); // 地图到窗口的缩放比
+        int obstacleDisplayRadius = obstaclePhysicalRadius * scale * 0.7; // 0.7为微调系数
+
+        // 4. 强制外切：障碍物绘制半径 = 物理半径 + 无人机半径
+        int finalObstacleRadius = qMax(4, obstacleDisplayRadius + droneDisplayRadius);
+
+        // 5. 绘制障碍物（圆心对齐）
         painter.setPen(QPen(obstacleColor, 1));
         painter.setBrush(QBrush(obstacleColor, Qt::SolidPattern));
-        painter.drawEllipse(widgetPos.x() - dotSize/2, widgetPos.y() - dotSize/2, dotSize, dotSize);
+        painter.drawEllipse(widgetPos, finalObstacleRadius, finalObstacleRadius);
     }
 }
 

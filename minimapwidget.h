@@ -116,7 +116,9 @@ private:
     int m_margin;
     
     // 实际地图中的障碍物半径
-    static const int ACTUAL_OBSTACLE_RADIUS = 80; 
+    const int obstaclePhysicalRadius = 80; 
+    // 无人机基准大小
+    const int DRONE_BASE_SIZE = 4; 
 };
 
 #endif // MINIMAPWIDGET_H 

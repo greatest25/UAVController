@@ -2,20 +2,28 @@
 #include <QPaintEvent>
 #include <QResizeEvent>
 
+/*
+无人机状态显示组件
+成员变量
+m_team:队伍
+m_itemHeight:项目高度
+m_margin:边距
+m_spacing:间距
+*/
 DroneStatusWidget::DroneStatusWidget(QWidget *parent)
     : QWidget(parent)
     , m_team("B")
-    , m_itemHeight(30)  // 进一步减小项目高度
+    , m_itemHeight(30)  // 项目高度
     , m_margin(8)       // 增加边距，让内容离边框更远
-    , m_spacing(2)      // 进一步减小间距
+    , m_spacing(2)      // 间距
     , m_blinkState(false)
 {
     // 设置默认颜色（蓝队）
     setTeamColors(QColor(123, 179, 211), QColor(100, 150, 200));
     
-    // 设置字体 - 更大更清晰
-    m_idFont = QFont("Arial", 14, QFont::Bold);  // 增大ID字体
-    m_posFont = QFont("Arial", 13);              // 增大位置字体
+    // 设置字体 
+    m_idFont = QFont("Arial", 14, QFont::Bold);  // ID字体
+    m_posFont = QFont("Arial", 13);              // 位置字体
     
     // 设置默认无人机列表
     if (m_team == "B") {
@@ -37,6 +45,7 @@ DroneStatusWidget::DroneStatusWidget(QWidget *parent)
     calculateLayout();
 }
 
+//更新无人机信息，hp:血量，pos:位置，online:是否在线
 void DroneStatusWidget::updateDroneInfo(const QString &droneId, int hp, const QPoint &pos, bool online)
 {
     if (m_drones.contains(droneId)) {
@@ -47,6 +56,7 @@ void DroneStatusWidget::updateDroneInfo(const QString &droneId, int hp, const QP
     }
 }
 
+//设置队伍，team:队伍
 void DroneStatusWidget::setTeam(const QString &team)
 {
     m_team = team;
@@ -60,6 +70,7 @@ void DroneStatusWidget::setTeam(const QString &team)
     }
 }
 
+//设置无人机列表，droneIds:无人机ID列表
 void DroneStatusWidget::setDroneList(const QStringList &droneIds)
 {
     m_droneOrder = droneIds;
@@ -72,10 +83,11 @@ void DroneStatusWidget::setDroneList(const QStringList &droneIds)
         m_drones[id] = info;
     }
     
-    calculateLayout();
-    update();
+    calculateLayout();//计算布局
+    update();//更新
 }
 
+//设置队伍颜色，primaryColor:主颜色，secondaryColor:次颜色
 void DroneStatusWidget::setTeamColors(const QColor &primaryColor, const QColor &secondaryColor)
 {
     m_primaryColor = primaryColor;
@@ -90,8 +102,7 @@ void DroneStatusWidget::setTeamColors(const QColor &primaryColor, const QColor &
     update();
 }
 
-
-
+//绘制事件
 void DroneStatusWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
@@ -110,14 +121,14 @@ void DroneStatusWidget::paintEvent(QPaintEvent *event)
     }
 }
 
+//重置事件
 void DroneStatusWidget::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
     calculateLayout();
 }
 
-
-
+//绘制背景
 void DroneStatusWidget::drawBackground(QPainter &painter)
 {
     // 绘制背景
@@ -129,6 +140,7 @@ void DroneStatusWidget::drawBackground(QPainter &painter)
     painter.drawRoundedRect(rect().adjusted(1, 1, -1, -1), 8, 8);
 }
 
+//绘制无人机状态
 void DroneStatusWidget::drawDroneStatus(QPainter &painter, const DroneStatusInfo &drone, const QRect &rect)
 {
     // 绘制无人机ID
@@ -144,6 +156,7 @@ void DroneStatusWidget::drawDroneStatus(QPainter &painter, const DroneStatusInfo
     drawPosition(painter, drone, rect);
 }
 
+//绘制无人机ID
 void DroneStatusWidget::drawDroneId(QPainter &painter, const QString &id, const QRect &rect)
 {
     painter.setFont(m_idFont);
@@ -154,6 +167,7 @@ void DroneStatusWidget::drawDroneId(QPainter &painter, const QString &id, const 
     painter.drawText(idRect, Qt::AlignLeft | Qt::AlignVCenter, id + ":");
 }
 
+//绘制血条
 void DroneStatusWidget::drawHealthBar(QPainter &painter, int hp, const QRect &rect)
 {
     // 血条位置：2x2表格右上角位置，增加血条长度
@@ -196,6 +210,7 @@ void DroneStatusWidget::drawHealthBar(QPainter &painter, int hp, const QRect &re
         }
     }
 
+    //如果无人机是红方且血量为0且离线，则显示未知
     if (droneId.startsWith("R") && hp == 0 && m_drones.contains(droneId) && !m_drones[droneId].isOnline) {
         painter.drawText(barRect, Qt::AlignCenter, "未知");
     } else {
@@ -203,6 +218,7 @@ void DroneStatusWidget::drawHealthBar(QPainter &painter, int hp, const QRect &re
     }
 }
 
+//绘制状态指示灯
 void DroneStatusWidget::drawStatusLed(QPainter &painter, bool isOnline, const QRect &rect)
 {
     // 状态指示灯位置：2x2表格左下角位置，与ID垂直对齐，减小指示灯大小
@@ -218,15 +234,16 @@ void DroneStatusWidget::drawStatusLed(QPainter &painter, bool isOnline, const QR
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(ledColor);
-    painter.drawEllipse(ledPos, 5, 5);  // 从8减小到6，让指示灯更小
+    painter.drawEllipse(ledPos, 5, 5);  //绘制指示灯
 
     // 添加高光效果
     if (isOnline) {
         painter.setBrush(QColor(255, 255, 255, 100));
-        painter.drawEllipse(ledPos.x() + 1, ledPos.y() + 1, 2, 2); // 高光也相应减小
+        painter.drawEllipse(ledPos.x() + 1, ledPos.y() + 1, 2, 2); // 高光
     }
 }
 
+//绘制坐标
 void DroneStatusWidget::drawPosition(QPainter &painter, const DroneStatusInfo &drone, const QRect &rect)
 {
     painter.setFont(m_posFont);
@@ -249,12 +266,14 @@ void DroneStatusWidget::drawPosition(QPainter &painter, const DroneStatusInfo &d
     painter.drawText(posRect, Qt::AlignLeft | Qt::AlignVCenter, posText);
 }
 
+//获取无人机矩形区域
 QRect DroneStatusWidget::getDroneRect(int index) const
 {
     int y = m_margin + index * (m_itemHeight + m_spacing);
     return QRect(0, y, width(), m_itemHeight);
 }
 
+//计算布局
 void DroneStatusWidget::calculateLayout()
 {
     // 根据控件大小调整布局参数

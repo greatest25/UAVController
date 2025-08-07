@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 5.0.3, 2025-08-05T19:04:44. -->
+<!-- Written by QtCreator 5.0.3, 2025-08-06T21:34:33. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -262,8 +262,7 @@
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
     <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt5ProjectManager.SylixOSRunConfiguration.IDD:/Sylixos_Qt/QT_pro/1111/console/controller/controller.pro</value>
     <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">D:/Sylixos_Qt/QT_pro/1111/console/controller/controller.pro</value>
-    <value type="QString" key="RunConfiguration.Arguments">-platform vnc:size=750x480,depth=32,port=5907
-</value>
+    <value type="QString" key="RunConfiguration.Arguments">./controller -platform vnc:size=786x490,depth=32,port=5907</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseQmlDebugger">false</value>

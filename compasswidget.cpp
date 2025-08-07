@@ -7,8 +7,8 @@ CompassWidget::CompassWidget(QWidget *parent)
     , m_currentSpeed(0.0)
 {
     // 设置最小大小，允许缩放
-    setMinimumSize(80, 80); // 允许更小
-    setMaximumSize(512, 512); // 允许更大
+    setMinimumSize(80, 80); 
+    setMaximumSize(512, 512); 
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);    
     
     // 初始化颜色
@@ -27,6 +27,7 @@ CompassWidget::CompassWidget(QWidget *parent)
     m_animationTimer->start(50); // 50ms更新一次，平滑动画
 }
 
+//设定方向
 void CompassWidget::setDirection(double angle)
 {
     // 规范化角度到0-360度
@@ -36,12 +37,14 @@ void CompassWidget::setDirection(double angle)
     m_targetDirection = angle;
 }
 
+//设定速度
 void CompassWidget::setSpeed(double speed)
 {
     m_currentSpeed = qMax(0.0, speed); // 确保速度非负
     update();
 }
 
+//绘制指南针
 void CompassWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
@@ -63,6 +66,7 @@ void CompassWidget::paintEvent(QPaintEvent *event)
     // drawDirectionText(painter);
 }
 
+//更新动画
 void CompassWidget::updateAnimation()
 {
     // 平滑过渡到目标方向
@@ -87,9 +91,10 @@ void CompassWidget::updateAnimation()
     }
 }
 
+//绘制指南针背景
 void CompassWidget::drawCompassBackground(QPainter &painter)
 {
-    QPoint center(width() / 2, height() / 2);
+    QPoint center(width() / 2, height() / 2);//中心点
     
     // 动态计算半径，让指南针自适应控件大小
     int outerRadius = getOuterRadius();
@@ -133,6 +138,7 @@ void CompassWidget::drawCompassBackground(QPainter &painter)
     }
 }
 
+//绘制罗盘刻度
 void CompassWidget::drawCompassRose(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
@@ -199,6 +205,7 @@ void CompassWidget::drawCompassRose(QPainter &painter)
     }
 }
 
+//绘制方向指针
 void CompassWidget::drawDirectionIndicator(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
@@ -223,6 +230,7 @@ void CompassWidget::drawDirectionIndicator(QPainter &painter)
     painter.drawEllipse(center, 6, 6);
 }
 
+//绘制速度指示器
 void CompassWidget::drawSpeedIndicator(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
@@ -247,6 +255,7 @@ void CompassWidget::drawSpeedIndicator(QPainter &painter)
                     90 * 16, -spanAngle); // 从顶部开始，逆时针
 }
 
+//绘制方向文字
 void CompassWidget::drawDirectionText(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
@@ -266,6 +275,7 @@ void CompassWidget::drawDirectionText(QPainter &painter)
     painter.drawText(dirTextRect, Qt::AlignCenter, directionText);
 }
 
+//获取方向文字，根据角度返回方向文字
 QString CompassWidget::getDirectionText(double angle) const
 {
     if (angle >= 337.5 || angle < 22.5) return "N";
@@ -278,6 +288,7 @@ QString CompassWidget::getDirectionText(double angle) const
     else return "NW";
 }
 
+//获取速度颜色，根据速度返回颜色
 QColor CompassWidget::getSpeedColor(double speed) const
 {
     if (speed < 10.0) {

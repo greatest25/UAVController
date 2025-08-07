@@ -1,13 +1,27 @@
 #include "radarwidget.h"
 
+/*
+雷达组件
+主要功能：
+展示无人机和障碍物
+提供鼠标点击事件
+提供缩放功能
+提供中心点设置功能
+提供障碍物添加功能
+提供障碍物清除功能
+提供障碍物清除功能
+成员变量
+m_currentDronePos:当前无人机的位置
+m_sweepAngle:扫描角度
+*/
 RadarWidget::RadarWidget(QWidget *parent)
     : QWidget(parent)
     , m_currentDronePos(0, 0)
     , m_sweepAngle(0)
 {
     // 设置合适的大小，允许缩放
-    setMinimumSize(200, 150); // 减小最小尺寸
-    setMaximumSize(400, 300); // 减小最大尺寸
+    setMinimumSize(200, 150); // 最小尺寸
+    setMaximumSize(400, 300); // 最大尺寸
     
     // 初始化颜色
     m_backgroundColor = QColor(0, 20, 0);      // 深绿色背景
@@ -25,12 +39,14 @@ RadarWidget::RadarWidget(QWidget *parent)
     m_updateTimer->start(100); // 100ms更新一次，模拟雷达扫描
 }
 
+//设置当前无人机位置
 void RadarWidget::setCurrentDronePosition(const QPoint &pos)
 {
     m_currentDronePos = pos;
     update();
 }
 
+//更新无人机信息,包括位置、队伍、id、血量
 void RadarWidget::updateDroneInfo(const QString &uid, const QPoint &pos, const QString &team, int hp)
 {
     RadarDroneInfo info;
@@ -44,6 +60,7 @@ void RadarWidget::updateDroneInfo(const QString &uid, const QPoint &pos, const Q
     update();
 }
 
+//添加障碍物
 void RadarWidget::addObstacle(const QString &id, const QPoint &pos, int radius, ObstacleType type)
 {
     ObstacleInfo info(id, type, pos.x(), pos.y(), radius);
@@ -51,6 +68,7 @@ void RadarWidget::addObstacle(const QString &id, const QPoint &pos, int radius, 
     update();
 }
 
+//清除过期障碍物
 void RadarWidget::clearStaleObstacles(int timeoutMs)
 {
     QDateTime currentTime = QDateTime::currentDateTime();
@@ -72,12 +90,14 @@ void RadarWidget::clearStaleObstacles(int timeoutMs)
     }
 }
 
+//清除所有障碍物
 void RadarWidget::clearObstacles()
 {
     m_obstacles.clear();
     update();
 }
 
+//清除所有无人机和障碍物
 void RadarWidget::clearAll()
 {
     m_drones.clear();
@@ -85,6 +105,7 @@ void RadarWidget::clearAll()
     update();
 }
 
+//绘制事件
 void RadarWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
@@ -106,6 +127,7 @@ void RadarWidget::paintEvent(QPaintEvent *event)
     drawRadarSweep(painter);
 }
 
+//更新雷达
 void RadarWidget::updateRadar()
 {
     // 更新扫描角度
@@ -117,6 +139,7 @@ void RadarWidget::updateRadar()
     update();
 }
 
+//绘制雷达背景
 void RadarWidget::drawRadarBackground(QPainter &painter)
 {
     // 计算雷达显示区域
@@ -149,6 +172,7 @@ void RadarWidget::drawRadarBackground(QPainter &painter)
                      center.x() + diagonalLength, center.y() - diagonalLength);
 }
 
+//绘制探测范围
 void RadarWidget::drawDetectionRange(QPainter &painter)
 {
     // 绘制探测范围边界
@@ -161,6 +185,7 @@ void RadarWidget::drawDetectionRange(QPainter &painter)
     painter.drawEllipse(center, maxRadius, maxRadius);
 }
 
+//绘制障碍物
 void RadarWidget::drawObstacles(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
@@ -184,19 +209,20 @@ void RadarWidget::drawObstacles(QPainter &painter)
         
         // 根据类型绘制不同的形状和图标
         switch (obstacle.type) {
-            case Mountain:
+            case Mountain://山体
                 drawMountainObstacle(painter, radarPos, displayRadius);
                 break;
-            case Radar:
+            case Radar://雷达
                 drawRadarObstacle(painter, radarPos, displayRadius);
                 break;
-            case Cloud:
+            case Cloud://雷云
                 drawCloudObstacle(painter, radarPos, displayRadius);
                 break;
         }
     }
 }
 
+//绘制无人机
 void RadarWidget::drawDrones(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
@@ -238,6 +264,7 @@ void RadarWidget::drawDrones(QPainter &painter)
     }
 }
 
+//绘制雷达扫描线
 void RadarWidget::drawRadarSweep(QPainter &painter)
 {
     QPoint center(width() / 2, height() / 2);
@@ -262,6 +289,7 @@ void RadarWidget::drawRadarSweep(QPainter &painter)
                     (m_sweepAngle - spanAngle) * 16, spanAngle * 16);
 }
 
+//将世界坐标转换为雷达坐标
 QPoint RadarWidget::worldToRadar(const QPoint &worldPos) const
 {
     QPoint center(width() / 2, height() / 2);
@@ -278,6 +306,7 @@ QPoint RadarWidget::worldToRadar(const QPoint &worldPos) const
     return radarPos;
 }
 
+//判断是否在探测范围内
 bool RadarWidget::isInDetectionRange(const QPoint &worldPos) const
 {
     QPoint relativePos = worldPos - m_currentDronePos;
@@ -285,6 +314,7 @@ bool RadarWidget::isInDetectionRange(const QPoint &worldPos) const
     return distance <= DETECTION_RADIUS;
 }
 
+//绘制山体障碍物
 void RadarWidget::drawMountainObstacle(QPainter &painter, const QPoint &pos, int radius)
 {
     // 山体障碍物：绘制三角形图标
@@ -311,6 +341,7 @@ void RadarWidget::drawMountainObstacle(QPainter &painter, const QPoint &pos, int
     painter.drawText(pos.x() - 10, pos.y() + radius + 12, "山体");
 }
 
+//绘制雷达障碍物
 void RadarWidget::drawRadarObstacle(QPainter &painter, const QPoint &pos, int radius)
 {
     // 雷达站障碍物：绘制雷达扫描图标
@@ -340,6 +371,7 @@ void RadarWidget::drawRadarObstacle(QPainter &painter, const QPoint &pos, int ra
     painter.drawText(pos.x() - 15, pos.y() + radius + 12, "雷达站");
 }
 
+//绘制雷云障碍物
 void RadarWidget::drawCloudObstacle(QPainter &painter, const QPoint &pos, int radius)
 {
     // 雷云障碍物：绘制云朵和闪电图标，带闪烁效果

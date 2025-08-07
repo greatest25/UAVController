@@ -53,20 +53,20 @@ private slots:
 
 private:
     // 绘制方法
-    void drawRadarBackground(QPainter &painter);
-    void drawDetectionRange(QPainter &painter);
-    void drawObstacles(QPainter &painter);
-    void drawDrones(QPainter &painter);
-    void drawRadarSweep(QPainter &painter);
+    void drawRadarBackground(QPainter &painter);//绘制雷达背景
+    void drawDetectionRange(QPainter &painter);//绘制探测范围
+    void drawObstacles(QPainter &painter);//绘制障碍物
+    void drawDrones(QPainter &painter);//绘制无人机
+    void drawRadarSweep(QPainter &painter);//绘制雷达扫描线
 
     // 障碍物绘制方法
-    void drawMountainObstacle(QPainter &painter, const QPoint &pos, int radius);
-    void drawRadarObstacle(QPainter &painter, const QPoint &pos, int radius);
-    void drawCloudObstacle(QPainter &painter, const QPoint &pos, int radius);
+    void drawMountainObstacle(QPainter &painter, const QPoint &pos, int radius);//绘制山体障碍物
+    void drawRadarObstacle(QPainter &painter, const QPoint &pos, int radius);//绘制雷达障碍物
+    void drawCloudObstacle(QPainter &painter, const QPoint &pos, int radius);//绘制雷云障碍物
     
     // 坐标转换方法
-    QPoint worldToRadar(const QPoint &worldPos) const;
-    bool isInDetectionRange(const QPoint &worldPos) const;
+    QPoint worldToRadar(const QPoint &worldPos) const;//将世界坐标转换为雷达坐标
+    bool isInDetectionRange(const QPoint &worldPos) const;//判断是否在探测范围内
     
     // 常量定义
     static const int DETECTION_RADIUS = 300;  // 探测半径（像素）
@@ -81,14 +81,14 @@ private:
     int m_sweepAngle;                         // 雷达扫描角度
     
     // 颜色定义
-    QColor m_backgroundColor;
-    QColor m_gridColor;
-    QColor m_sweepColor;
-    QColor m_mountainColor;
-    QColor m_radarColor;
-    QColor m_cloudColor;
-    QColor m_blueTeamColor;
-    QColor m_redTeamColor;
+    QColor m_backgroundColor;//背景颜色
+    QColor m_gridColor;//网格线颜色
+    QColor m_sweepColor;//扫描线颜色
+    QColor m_mountainColor;//山体障碍物颜色
+    QColor m_radarColor;//雷达障碍物颜色
+    QColor m_cloudColor;//雷云障碍物颜色
+    QColor m_blueTeamColor;//蓝队无人机颜色
+    QColor m_redTeamColor;//红队无人机颜色
 };
 
 #endif // RADARWIDGET_H

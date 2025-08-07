@@ -1,6 +1,13 @@
 #include "joystickwidget.h"
 #include <QDebug>
 
+/*
+摇杆组件
+成员变量
+m_joystickPos:摇杆位置
+m_dragging:是否拖动
+m_lastAngle:上一次角度
+*/
 JoystickWidget::JoystickWidget(QWidget *parent)
     : QWidget(parent)
     , m_joystickPos(0, 0)
@@ -11,13 +18,15 @@ JoystickWidget::JoystickWidget(QWidget *parent)
     updateGeometry();
 }
 
+//重置事件
 void JoystickWidget::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
     m_center = rect().center();
-    m_radius = qMin(width(), height()) / 2 - 5; // 减少边距，让摇杆更大
+    m_radius = qMin(width(), height()) / 2 - 5; // 半径
 }
 
+//绘制事件
 void JoystickWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
@@ -82,6 +91,7 @@ void JoystickWidget::paintEvent(QPaintEvent *event)
     painter.drawEllipse(m_center.x() - 2, m_center.y() - 2, 4, 4);
 }
 
+//鼠标按下事件
 void JoystickWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
@@ -95,6 +105,7 @@ void JoystickWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
+//鼠标移动事件
 void JoystickWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if (m_dragging) {
@@ -102,6 +113,7 @@ void JoystickWidget::mouseMoveEvent(QMouseEvent *event)
     }
 }
 
+//鼠标释放事件
 void JoystickWidget::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton && m_dragging) {
@@ -110,6 +122,7 @@ void JoystickWidget::mouseReleaseEvent(QMouseEvent *event)
     }
 }
 
+//更新摇杆位置
 void JoystickWidget::updateJoystickPosition(const QPoint &pos)
 {
     // 计算相对于中心的位置
@@ -134,6 +147,7 @@ void JoystickWidget::updateJoystickPosition(const QPoint &pos)
     emit positionChanged(m_joystickPos);
 }
 
+//重置摇杆
 void JoystickWidget::resetJoystick()
 {
     m_joystickPos = QPointF(0, 0);
@@ -142,9 +156,10 @@ void JoystickWidget::resetJoystick()
     
     emit angleChanged(-1);
     emit positionChanged(m_joystickPos);
-    qDebug() << "摇杆返回中心！";
+    //qDebug() << "摇杆返回中心！";
 }
 
+//获取角度
 int JoystickWidget::getAngle() const
 {
     if (m_joystickPos.x() == 0 && m_joystickPos.y() == 0) {
@@ -160,6 +175,7 @@ int JoystickWidget::getAngle() const
     return static_cast<int>(angle);
 }
 
+//获取距离
 double JoystickWidget::getDistance() const
 {
     if (m_radius == 0) return 0.0;

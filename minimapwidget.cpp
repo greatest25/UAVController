@@ -5,6 +5,23 @@
 #include <QtMath>
 #include <QDebug>
 
+/*
+小地图组件
+主要功能：
+展示无人机和障碍物
+提供鼠标点击事件
+提供缩放功能
+提供中心点设置功能
+提供障碍物添加功能
+提供障碍物清除功能
+提供障碍物清除功能
+成员变量
+m_selectedDrone:选中无人机
+m_zoomLevel:缩放级别
+m_droneSize:无人机大小
+m_gridSpacing:网格间距
+m_margin:边距
+*/
 MinimapWidget::MinimapWidget(QWidget *parent)
     : QWidget(parent)
     , m_selectedDrone("B1")
@@ -19,13 +36,13 @@ MinimapWidget::MinimapWidget(QWidget *parent)
     m_mapBounds = QRect(0, 0, 1280, 800);
     
     // 颜色主题
-    m_backgroundColor = QColor(30, 34, 42);
-    m_gridColor = QColor(60, 64, 72);
-    m_borderColor = QColor(70, 130, 180);
-    m_blueTeamColor = QColor(0, 191, 255);
-    m_redTeamColor = QColor(255, 0, 0);
-    m_selectedColor = QColor(255,165,102);
-    m_offlineColor = QColor(128, 128, 128);
+    m_backgroundColor = QColor(30, 34, 42);//背景色，深灰色
+    m_gridColor = QColor(60, 64, 72);//网格线颜色，深灰色
+    m_borderColor = QColor(70, 130, 180);//边框颜色，蓝色
+    m_blueTeamColor = QColor(0, 191, 255);//蓝队颜色，蓝色
+    m_redTeamColor = QColor(255, 0, 0);//红队颜色，红色
+    m_selectedColor = QColor(255,165,102);//选中无人机颜色，橙色
+    m_offlineColor = QColor(128, 128, 128);//离线无人机颜色，灰色
     
     // 障碍物颜色
     m_mountainColor = QColor(39, 255, 96);  // 绿色
@@ -37,6 +54,9 @@ MinimapWidget::MinimapWidget(QWidget *parent)
     m_centerOffset = QPointF(0, 0);
 }
 
+//更新无人机信息
+//droneId:无人机ID，pos:无人机位置，team:无人机队伍，hp:无人机血量，
+//online:无人机是否在线，heading:无人机方向
 void MinimapWidget::updateDroneInfo(const QString &droneId, const QPoint &pos, const QString &team, int hp, bool online, double heading)
 {
     DroneInfo info;
@@ -51,18 +71,21 @@ void MinimapWidget::updateDroneInfo(const QString &droneId, const QPoint &pos, c
     update();
 }
 
+//设置地图边界
 void MinimapWidget::setMapBounds(const QRect &bounds)
 {
     m_mapBounds = bounds;
     update();
 }
 
+//设置选中无人机
 void MinimapWidget::setSelectedDrone(const QString &droneId)
 {
     m_selectedDrone = droneId;
     update();
 }
 
+//清除所有无人机和障碍物
 void MinimapWidget::clearAll()
 {
     m_drones.clear();
@@ -70,6 +93,7 @@ void MinimapWidget::clearAll()
     update();
 }
 
+//设置缩放级别
 void MinimapWidget::setZoomLevel(double zoom)
 {
     // 调整缩放范围，适应1280*800的地图
@@ -77,13 +101,14 @@ void MinimapWidget::setZoomLevel(double zoom)
     update();
 }
 
+//设置中心点
 void MinimapWidget::setCenter(const QPointF &center)
 {
     m_centerOffset = center;
     update();
 }
 
-
+//绘制事件
 void MinimapWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
@@ -95,6 +120,7 @@ void MinimapWidget::paintEvent(QPaintEvent *event)
     drawDrones(painter);    
 }
 
+//鼠标按下事件
 void MinimapWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
@@ -105,12 +131,14 @@ void MinimapWidget::mousePressEvent(QMouseEvent *event)
     }
 }
 
+//重置事件
 void MinimapWidget::resizeEvent(QResizeEvent *event)
 {
     QWidget::resizeEvent(event);
     update();
 }
 
+//绘制背景
 void MinimapWidget::drawBackground(QPainter &painter)
 {
     // 绘制背景
@@ -122,6 +150,7 @@ void MinimapWidget::drawBackground(QPainter &painter)
     painter.drawRoundedRect(rect().adjusted(1, 1, -1, -1), 8, 8);
 }
 
+//绘制网格
 void MinimapWidget::drawGrid(QPainter &painter)
 {
     painter.setPen(QPen(m_gridColor, 1));
@@ -149,6 +178,7 @@ void MinimapWidget::drawGrid(QPainter &painter)
     painter.drawLine(mapRect.left(), center.y(), mapRect.right(), center.y());
 }
 
+//绘制无人机
 void MinimapWidget::drawDrones(QPainter &painter)
 {
     QRect mapRect = rect().adjusted(m_margin, m_margin, -m_margin, -m_margin);
@@ -159,20 +189,25 @@ void MinimapWidget::drawDrones(QPainter &painter)
         // 转换世界坐标到窗口坐标
         QPoint widgetPos = mapToWidget(drone.position);
         
-        // 添加调试输出
-        if (drone.id == m_selectedDrone) {
-            qDebug() << "[Minimap] Selected Drone" << drone.id << "World Pos:" << drone.position << "Widget Pos:" << widgetPos;
-        }
+        //// 添加调试输出
+        // if (drone.id == m_selectedDrone) {
+        //     qDebug() << "[Minimap] Selected Drone" << drone.id << "World Pos:" << drone.position << "Widget Pos:" << widgetPos;
+        // }
         
-        // 调试血量为0的无人机
-        if (drone.hp <= 0) {
-            qDebug() << "[Minimap] Dead Drone" << drone.id << "HP:" << drone.hp << "Color: White";
-        }
+        // // 调试血量为0的无人机
+        // if (drone.hp <= 0) {
+        //     qDebug() << "[Minimap] Dead Drone" << drone.id << "HP:" << drone.hp << "Color: White";
+        // }
 
         // 检查是否在可见区域内
         if (!mapRect.contains(widgetPos)) continue;
         
-        // 选择颜色
+        // 选择颜色，根据无人机状态选择颜色
+        // 选中无人机颜色，橙色
+        // 血量为0的无人机颜色，白色
+        // 离线无人机颜色，灰色
+        // 蓝队无人机颜色，蓝色
+        // 红队无人机颜色，红色
         QColor droneColor;
         if (drone.id == m_selectedDrone) {
             droneColor = m_selectedColor;
@@ -216,10 +251,10 @@ void MinimapWidget::drawDrones(QPainter &painter)
     }
 }
 
-// 图例绘制已移至CustomDashboard类中
-
+//将世界坐标转换为窗口坐标
 QPoint MinimapWidget::mapToWidget(const QPoint &worldPos) const
 {
+    // 计算地图矩形区域
     QRectF mapRect = rect().adjusted(m_margin, m_margin, -m_margin, -m_margin);
     
     // 计算缩放比例
@@ -245,6 +280,7 @@ QPoint MinimapWidget::mapToWidget(const QPoint &worldPos) const
     return QPoint(qRound(widgetCenter.x() + offsetX), qRound(widgetCenter.y() + offsetY));
 }
 
+//将窗口坐标转换为世界坐标
 QPoint MinimapWidget::widgetToMap(const QPoint &widgetPos) const
 {
     QRectF mapRect = rect().adjusted(m_margin, m_margin, -m_margin, -m_margin);
@@ -275,15 +311,18 @@ QPoint MinimapWidget::widgetToMap(const QPoint &widgetPos) const
     return QPoint(worldX, worldY);
 }
 
+//获取点击的无人机
 QString MinimapWidget::getDroneAtPosition(const QPoint &widgetPos) const
 {
+    // 计算点击范围
     int clickRadius = m_droneSize * m_zoomLevel + 5;
     if (clickRadius < 8) clickRadius = 8;
     
+    // 遍历所有无人机，检查是否在点击范围内
     for (auto it = m_drones.begin(); it != m_drones.end(); ++it) {
         const DroneInfo &drone = it.value();
         QPoint dronePos = mapToWidget(drone.position);
-        
+        // 检查是否在点击范围内
         if ((widgetPos - dronePos).manhattanLength() <= clickRadius) {
             return drone.id;
         }
@@ -313,31 +352,34 @@ void MinimapWidget::addObstacle(const QString &id, double x, double y, double ra
     ObstacleInfo info(id, type, x, y, radius);
     m_obstacles[id] = info;
     
-    // 添加调试输出
-    QString typeStr;
-    QString staticStr = isStaticObstacle(type) ? " (Static)" : " (Dynamic)";
-    switch (type) {
-        case Mountain: typeStr = "Mountain"; break;
-        case Radar: typeStr = "Radar"; break;
-        case Cloud: typeStr = "Cloud"; break;
-        default: typeStr = "Unknown"; break;
-    }
-    qDebug() << "[Minimap] Added obstacle:" << id << "at (" << x << "," << y << ") radius" << radius 
-             << "type" << typeStr << staticStr;
-    
+    // // 添加调试输出
+    // QString typeStr;
+    // QString staticStr = isStaticObstacle(type) ? " (Static)" : " (Dynamic)";
+    // switch (type) {
+    //     case Mountain: typeStr = "Mountain"; break;
+    //     case Radar: typeStr = "Radar"; break;
+    //     case Cloud: typeStr = "Cloud"; break;
+    //     default: typeStr = "Unknown"; break;
+    // }
+    // qDebug() << "[Minimap] Added obstacle:" << id << "at (" << x << "," << y << ") radius" << radius 
+    //          << "type" << typeStr << staticStr;
+
     update();
 }
 
+//清除所有障碍物
 void MinimapWidget::clearObstacles()
 {
     m_obstacles.clear();
     update();
 }
 
+//清除动态障碍物
+//动态障碍物：雷云
 void MinimapWidget::clearDynamicObstacles()
 {
     QList<QString> keysToRemove;
-    
+    //遍历所有障碍物，检查是否为动态障碍物
     for (auto it = m_obstacles.begin(); it != m_obstacles.end(); ++it) {
         if (isDynamicObstacle(it.value().type)) {
             keysToRemove.append(it.key());
@@ -350,30 +392,33 @@ void MinimapWidget::clearDynamicObstacles()
     
     if (!keysToRemove.isEmpty()) {
         update();
-        qDebug() << "[Minimap] Cleared" << keysToRemove.size() << "dynamic obstacles";
+        //qDebug() << "[Minimap] Cleared" << keysToRemove.size() << "dynamic obstacles";
     }
 }
 
+//清除静态障碍物
+//静态障碍物：山体、雷达
 void MinimapWidget::clearStaticObstacles()
 {
     QList<QString> keysToRemove;
-    
+    //遍历所有障碍物，检查是否为静态障碍物
     for (auto it = m_obstacles.begin(); it != m_obstacles.end(); ++it) {
         if (isStaticObstacle(it.value().type)) {
             keysToRemove.append(it.key());
         }
     }
-    
+
     for (const QString &key : keysToRemove) {
         m_obstacles.remove(key);
     }
     
     if (!keysToRemove.isEmpty()) {
         update();
-        qDebug() << "[Minimap] Cleared" << keysToRemove.size() << "static obstacles";
+        //qDebug() << "[Minimap] Cleared" << keysToRemove.size() << "static obstacles";
     }
 }
 
+//清除过期障碍物
 void MinimapWidget::clearStaleObstacles(int timeoutMs)
 {
     QDateTime currentTime = QDateTime::currentDateTime();
@@ -395,10 +440,11 @@ void MinimapWidget::clearStaleObstacles(int timeoutMs)
     
     if (!keysToRemove.isEmpty()) {
         update();
-        qDebug() << "[Minimap] Cleared" << keysToRemove.size() << "stale dynamic obstacles";
+        //qDebug() << "[Minimap] Cleared" << keysToRemove.size() << "stale dynamic obstacles";
     }
 }
 
+//绘制障碍物
 void MinimapWidget::drawObstacles(QPainter &painter)
 {
     QRect mapRect = rect().adjusted(m_margin, m_margin, -m_margin, -m_margin);
@@ -424,15 +470,15 @@ void MinimapWidget::drawObstacles(QPainter &painter)
         // 5. 绘制障碍物（圆心对齐）
         QColor obstacleColor;
         switch (obstacle.type) {
-            case Mountain:
+            case Mountain://山体
                 obstacleColor = m_mountainColor;
                 drawMountainObstacle(painter, widgetPos, finalObstacleRadius);
                 break;
-            case Radar:
+            case Radar://雷达
                 obstacleColor = m_radarColor;
                 drawRadarObstacle(painter, widgetPos, finalObstacleRadius);
                 break;
-            case Cloud:
+            case Cloud://雷云   
                 obstacleColor = m_cloudColor;
                 drawCloudObstacle(painter, widgetPos, finalObstacleRadius);
                 break;
@@ -443,6 +489,7 @@ void MinimapWidget::drawObstacles(QPainter &painter)
     }
 }
 
+//绘制山体障碍物
 void MinimapWidget::drawMountainObstacle(QPainter &painter, const QPoint &pos, int radius)
 {
     // 山体障碍物：绘制三角形图标
@@ -469,6 +516,7 @@ void MinimapWidget::drawMountainObstacle(QPainter &painter, const QPoint &pos, i
     painter.drawText(pos.x() - 10, pos.y() + radius + 12, "山体");
 }
 
+//绘制雷达障碍物
 void MinimapWidget::drawRadarObstacle(QPainter &painter, const QPoint &pos, int radius)
 {
     // 雷达站障碍物：绘制雷达扫描图标
@@ -498,6 +546,7 @@ void MinimapWidget::drawRadarObstacle(QPainter &painter, const QPoint &pos, int 
     painter.drawText(pos.x() - 15, pos.y() + radius + 12, "雷达站");
 }
 
+//绘制雷云障碍物
 void MinimapWidget::drawCloudObstacle(QPainter &painter, const QPoint &pos, int radius)
 {
     // 雷云障碍物：绘制云朵和闪电图标，带闪烁效果

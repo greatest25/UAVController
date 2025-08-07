@@ -24,8 +24,8 @@ public:
     void resetJoystick();
 
 signals:
-    void angleChanged(int angle);
-    void positionChanged(QPointF position);
+    void angleChanged(int angle);//角度改变信号
+    void positionChanged(QPointF position);//位置改变信号
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -35,7 +35,7 @@ protected:
     void resizeEvent(QResizeEvent *event) override;
 
 private:
-    void updateJoystickPosition(const QPoint &pos);
+    void updateJoystickPosition(const QPoint &pos);//更新摇杆位置
     
     QPointF m_joystickPos;      // 摇杆相对于中心的位置
     QPoint m_center;            // 摇杆中心点

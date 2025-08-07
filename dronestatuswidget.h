@@ -32,7 +32,7 @@ public:
     explicit DroneStatusWidget(QWidget *parent = nullptr);
     
     // 设置无人机信息
-    void updateDroneInfo(const QString &droneId, int hp, const QPoint &pos, bool online);
+    void updateDroneInfo(const QString &droneId, int hp, const QPoint &pos, bool online);//更新无人机信息
     void setTeam(const QString &team); // "B" 或 "R"
     
     // 设置显示的无人机列表
@@ -47,21 +47,21 @@ protected:
 
 private:
     // 绘制函数
-    void drawBackground(QPainter &painter);
-    void drawDroneStatus(QPainter &painter, const DroneStatusInfo &drone, const QRect &rect);
-    void drawHealthBar(QPainter &painter, int hp, const QRect &rect);
-    void drawStatusLed(QPainter &painter, bool isOnline, const QRect &rect);
-    void drawDroneId(QPainter &painter, const QString &id, const QRect &rect);
-    void drawPosition(QPainter &painter, const DroneStatusInfo &drone, const QRect &rect);
+    void drawBackground(QPainter &painter);//绘制背景
+    void drawDroneStatus(QPainter &painter, const DroneStatusInfo &drone, const QRect &rect);//绘制无人机状态
+    void drawHealthBar(QPainter &painter, int hp, const QRect &rect);//绘制血条
+    void drawStatusLed(QPainter &painter, bool isOnline, const QRect &rect);//绘制状态指示灯
+    void drawDroneId(QPainter &painter, const QString &id, const QRect &rect);//绘制无人机ID
+    void drawPosition(QPainter &painter, const DroneStatusInfo &drone, const QRect &rect);//绘制坐标
     
     // 计算布局
-    QRect getDroneRect(int index) const;
-    void calculateLayout();
+    QRect getDroneRect(int index) const;//获取无人机矩形区域
+    void calculateLayout();//计算布局
     
     // 数据成员
-    QMap<QString, DroneStatusInfo> m_drones;
-    QStringList m_droneOrder;
-    QString m_team;
+    QMap<QString, DroneStatusInfo> m_drones;//无人机信息
+    QStringList m_droneOrder;//无人机列表
+    QString m_team;//队伍
     
     // 颜色配置
     QColor m_primaryColor;      // 主色调

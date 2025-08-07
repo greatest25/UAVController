@@ -54,14 +54,14 @@ private:
     QTimer *m_animationTimer;                 // 动画定时器
     
     // 颜色定义
-    QColor m_backgroundColor;
-    QColor m_borderColor;
-    QColor m_roseColor;
-    QColor m_needleColor;
-    QColor m_textColor;
-    QColor m_speedLowColor;
-    QColor m_speedMediumColor;
-    QColor m_speedHighColor;
+    QColor m_backgroundColor;//背景颜色
+    QColor m_borderColor;//边框颜色
+    QColor m_roseColor;//罗盘刻度颜色
+    QColor m_needleColor;//指针颜色
+    QColor m_textColor;//文字颜色
+    QColor m_speedLowColor;//低速颜色
+    QColor m_speedMediumColor;//中速颜色
+    QColor m_speedHighColor;//高速颜色
 };
 
 #endif // COMPASSWIDGET_H

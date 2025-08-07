@@ -9,6 +9,22 @@
 #include <QRandomGenerator>
 #include <functional>
 
+/*
+主要功能：
+1. 创建仪表盘
+2. 创建定时器
+3. 创建无人机选择器
+4. 创建游戏剩余时间
+5. 创建游戏状态
+
+成员变量
+m_dashboard:仪表盘
+m_controlTimer:控制定时器
+m_updateTimer:更新定时器
+m_currentDroneId:当前无人机ID
+m_selectedDroneId:选中无人机ID
+m_gameLeftTime:游戏剩余时间
+*/
 CustomWindow::CustomWindow(QWidget *parent)
     : QMainWindow(parent)
     , m_dashboard(nullptr)
@@ -19,11 +35,12 @@ CustomWindow::CustomWindow(QWidget *parent)
     , m_gameLeftTime(0)
     , m_gameStage("init")
 {
-    initializeUI();
-    initializeConnections();
-    initializeCommunication();
+    initializeUI();//初始化UI
+    initializeConnections();//初始化连接
+    initializeCommunication();//初始化通信
 }
 
+//用于释放资源
 CustomWindow::~CustomWindow()
 {
     if (m_controlTimer) {
@@ -34,6 +51,7 @@ CustomWindow::~CustomWindow()
     }
 }
 
+//初始化UI
 void CustomWindow::initializeUI()
 {
     setWindowTitle("UAV Custom Console");
@@ -57,6 +75,7 @@ void CustomWindow::initializeUI()
     );
 }
 
+//初始化连接
 void CustomWindow::initializeConnections()
 {
     // 创建定时器
@@ -64,8 +83,8 @@ void CustomWindow::initializeConnections()
     m_updateTimer = new QTimer(this);
 
     // 连接定时器信号 - 沿用传统模式的逻辑
-    connect(m_controlTimer, &QTimer::timeout, this, &CustomWindow::sendControlCommand);
-    connect(m_updateTimer, &QTimer::timeout, this, &CustomWindow::updateUIDisplay);
+    connect(m_controlTimer, &QTimer::timeout, this, &CustomWindow::sendControlCommand);//连接控制定时器信号
+    connect(m_updateTimer, &QTimer::timeout, this, &CustomWindow::updateUIDisplay);//连接更新定时器信号
 
     // 连接无人机选择信号
     connect(m_dashboard, &CustomDashboard::droneSelectionChanged,
@@ -79,6 +98,7 @@ void CustomWindow::initializeConnections()
     m_updateTimer->start(50);    // 50ms更新一次UI
 }
 
+//初始化通信
 void CustomWindow::initializeCommunication()
 {
     if (m_client.isInvalid()) {
@@ -87,18 +107,18 @@ void CustomWindow::initializeCommunication()
     }
     
     // 连接VSOA信号
-    connect(&m_client, &QVsoaClient::connected, this, &CustomWindow::onConnected);
-    connect(&m_client, &QVsoaClient::disconnected, this, &CustomWindow::onDisconnected);
+    connect(&m_client, &QVsoaClient::connected, this, &CustomWindow::onConnected);//连接VSOA连接信号
+    connect(&m_client, &QVsoaClient::disconnected, this, &CustomWindow::onDisconnected);//连接VSOA断开信号
+    //连接VSOA数据信号
     connect(&m_client, &QVsoaClient::datagram,
-            std::bind(&CustomWindow::onDatagram, this, &m_client, std::placeholders::_1, std::placeholders::_2));
+            std::bind(&CustomWindow::onDatagram, this, &m_client, std::placeholders::_1, std::placeholders::_2));//连接VSOA数据信号
     
     // 连接到服务器
     m_client.connect2server("vsoa://127.0.0.1:3005/game_server", "", 1000);
-    m_client.autoConnect(1000, 500);
+    m_client.autoConnect(1000, 500);//自动连接服务器，1000ms后连接，500ms后重连
 }
 
-
-
+//VSOA连接成功，订阅频道
 void CustomWindow::onConnected(bool ok, QString info)
 {
     if (ok) {
@@ -115,11 +135,13 @@ void CustomWindow::onConnected(bool ok, QString info)
     }
 }
 
+//VSOA连接断开，打印日志
 void CustomWindow::onDisconnected()
 {
     qDebug() << "🔌 VSOA连接断开";
 }
 
+//VSOA数据信号，处理接收到的数据
 void CustomWindow::onDatagram(QVsoaClient *client, QString url, QVsoaPayload payload)
 {
     Q_UNUSED(client)
@@ -140,13 +162,14 @@ void CustomWindow::onDatagram(QVsoaClient *client, QString url, QVsoaPayload pay
             return;
         }
 
-        processGameData(dataStr);
+        processGameData(dataStr);//处理游戏数据
     } else if (url == "/ctrl") {
         // 处理控制数据的反馈
         qDebug() << "接收到控制数据反馈：" << param;
     }
 }
 
+//处理游戏数据，解析json数据
 void CustomWindow::processGameData(const QString &jsonData)
 {
     QJsonDocument doc = QJsonDocument::fromJson(jsonData.toUtf8());
@@ -157,11 +180,11 @@ void CustomWindow::processGameData(const QString &jsonData)
 
     QJsonObject gameObj = doc.object();
 
-    // 调试：输出接收到的数据结构
-    static int debugCount = 0;
-    if (debugCount++ < 5) { // 只输出前5次，避免日志过多
-        qDebug() << "游戏数据键:" << gameObj.keys();
-    }
+    // // 调试：输出接收到的数据结构
+    // static int debugCount = 0;
+    // if (debugCount++ < 5) { // 只输出前5次，避免日志过多
+    //     qDebug() << "游戏数据键:" << gameObj.keys();
+    // }
 
     // 更新游戏状态
     if (gameObj.contains("left_time")) {
@@ -171,16 +194,16 @@ void CustomWindow::processGameData(const QString &jsonData)
     if (gameObj.contains("stage")) {
         QString newStage = gameObj["stage"].toString();
 
-        // 调试输出游戏状态变化
-        static int stageDebugCount = 0;
-        if (stageDebugCount++ < 10) {
-            qDebug() << "CUSTOM WINDOW STAGE:" << m_gameStage << "=>" << newStage;
-        }
+        // // 调试输出游戏状态变化
+        // static int stageDebugCount = 0;
+        // if (stageDebugCount++ < 10) {
+        //     qDebug() << "CUSTOM WINDOW STAGE:" << m_gameStage << "=>" << newStage;
+        // }
 
-        // 如果游戏状态发生变化，输出日志
-        if (m_gameStage != newStage) {
-            qDebug() << "CUSTOM WINDOW STATE CHANGE:" << m_gameStage << "->" << newStage;
-        }
+        // // 如果游戏状态发生变化，输出日志
+        // if (m_gameStage != newStage) {
+        //     qDebug() << "CUSTOM WINDOW STATE CHANGE:" << m_gameStage << "->" << newStage;
+        // }
 
         // 检查游戏状态是否变为finish，如果是则重置所有数据
         if (newStage == "finish" && m_gameStage != "finish") {
@@ -203,7 +226,16 @@ void CustomWindow::processGameData(const QString &jsonData)
 
             QString uid = droneObj["uid"].toString();
             CustomDroneInfo info;
-            
+            /*
+            信息类
+            uid:无人机ID
+            hp:无人机血量
+            status:无人机状态
+            team:无人机队伍
+            x:无人机x坐标
+            y:无人机y坐标
+            vx:无人机x速度
+            */            
             info.uid = uid;
             info.hp = droneObj["hp"].toInt();
             info.status = droneObj["status"].toString();
@@ -238,9 +270,9 @@ void CustomWindow::processGameData(const QString &jsonData)
         }
     }
 
-    // 更新障碍物信息（参考vsoamanager的实现）
+    // 更新障碍物信息    
     if (gameObj.contains("obstacles") && gameObj["obstacles"].isArray()) {
-        QJsonArray obstacles = gameObj["obstacles"].toArray();
+        QJsonArray obstacles = gameObj["obstacles"].toArray();//障碍物数组
 
         // 清空雷达障碍物
         m_dashboard->clearObstacles();
@@ -271,26 +303,28 @@ void CustomWindow::processGameData(const QString &jsonData)
                 // 添加到雷达显示
                 m_dashboard->addObstacle(id, QPoint(x, y), r, obsType);
                 
-                // 添加调试输出，显示障碍物的实际半径
-                QString typeStr;
-                switch (obsType) {
-                    case Mountain: typeStr = "Mountain"; break;
-                    case Radar: typeStr = "Radar"; break;
-                    case Cloud: typeStr = "Cloud"; break;
-                    default: typeStr = "Unknown"; break;
-                }
-                qDebug() << "[VSOA] Parsed obstacle:" << id << "at (" << x << "," << y << ") radius" << r << "type" << typeStr;
+                // // 添加调试输出，显示障碍物的实际半径
+                // QString typeStr;
+                // switch (obsType) {
+                //     case Mountain: typeStr = "Mountain"; break;
+                //     case Radar: typeStr = "Radar"; break;
+                //     case Cloud: typeStr = "Cloud"; break;
+                //     default: typeStr = "Unknown"; break;
+                // }
+                // qDebug() << "[VSOA] Parsed obstacle:" << id << "at (" << x << "," << y << ") radius" << r << "type" << typeStr;
             }
         }
     }
 }
 
+//更新UI显示
 void CustomWindow::updateUIDisplay()
 {
     updateDroneData();
     updateRadarData();
 }
 
+//更新无人机数据
 void CustomWindow::updateDroneData()
 {
     // 获取当前选择的蓝方无人机位置（用于探测范围计算）
@@ -336,7 +370,7 @@ void CustomWindow::updateDroneData()
         m_dashboard->updateRadarInfo(info.uid, QPoint(info.x, info.y), info.team, info.hp);
 
         // 调试输出（每10次输出一次，避免日志过多）
-        static int updateCount = 0;
+//        static int updateCount = 0;
 //        if (updateCount++ % 10 == 0) {
 //            qDebug() << QString("更新无人机 %1: HP=%2, 位置=(%3,%4), 在线=%5, 状态栏更新=%6")
 //                        .arg(info.uid).arg(info.hp).arg(info.x).arg(info.y).arg(info.isOnline).arg(shouldUpdateStatus);
@@ -354,25 +388,25 @@ void CustomWindow::updateDroneData()
     }
 }
 
+//更新雷达数据
 void CustomWindow::updateRadarData()
 {
     // 这里可以添加雷达特定的更新逻辑
     // 比如障碍物检测、敌方无人机探测等
 }
 
+//发送控制命令
 void CustomWindow::sendControlCommand()
 {
     // 如果游戏已结束或未开始，不发送控制命令
     if (m_gameStage == "finish" || m_gameStage == "init") {
         static bool hasLogged = false;
         if (!hasLogged) {
-            qDebug() << "CUSTOM WINDOW STOP SENDING COMMANDS - GAME STATE:" << m_gameStage;
+            //qDebug() << "CUSTOM WINDOW STOP SENDING COMMANDS - GAME STATE:" << m_gameStage;
             hasLogged = true;
         }
         return;
     }
-
-    // 完全沿用传统模式的摇杆控制逻辑
 
     // 获取当前角度和距离
     int angle = m_dashboard->getJoystickWidget()->getAngle();
@@ -419,19 +453,18 @@ void CustomWindow::sendControlCommand()
     // 发送到/ctrl通道
     m_client.sendDatagram("/ctrl", payload);
 
-    // 调试输出
-    if (angle != -1) {
-        static int debugCount = 0;
-        if (debugCount++ % 20 == 0) { // 每秒输出一次（20Hz * 1s）
-            qDebug() << "发送控制命令: uid=" << droneId
-                     << ", vx=" << vx << ", vy=" << vy
-                     << ", 角度=" << angle << ", 距离=" << distance;
-        }
-    }
+    // // 调试输出
+    // if (angle != -1) {
+    //     static int debugCount = 0;
+    //     if (debugCount++ % 20 == 0) { // 每秒输出一次（20Hz * 1s）
+    //         qDebug() << "发送控制命令: uid=" << droneId
+    //                  << ", vx=" << vx << ", vy=" << vy
+    //                  << ", 角度=" << angle << ", 距离=" << distance;
+    //     }
+    // }
 }
 
-// sendMovementCommand 方法已删除，改用 sendControlCommand 统一处理
-
+//获取当前无人机ID，优先使用选中的无人机ID，否则使用默认的
 QString CustomWindow::getCurrentDroneUid() const
 {
     // 优先使用选中的无人机ID，否则使用默认的
@@ -441,12 +474,14 @@ QString CustomWindow::getCurrentDroneUid() const
     return QString("B%1").arg(m_currentDroneId);
 }
 
+//键盘事件
 void CustomWindow::keyPressEvent(QKeyEvent *event)
 {
     handleKeyboardControl(event);
     QMainWindow::keyPressEvent(event);
 }
 
+//键盘控制，主要用于无人机选择，移动控制由摇杆负责
 void CustomWindow::handleKeyboardControl(QKeyEvent *event)
 {
     // 键盘控制主要用于无人机选择，移动控制由摇杆负责
@@ -465,8 +500,7 @@ void CustomWindow::handleKeyboardControl(QKeyEvent *event)
     }
 }
 
-// 删除事件驱动的摇杆控制方法，改用定时器驱动（与传统模式一致）
-
+//鼠标事件
 void CustomWindow::mousePressEvent(QMouseEvent *event)
 {
     Q_UNUSED(event)
@@ -474,6 +508,7 @@ void CustomWindow::mousePressEvent(QMouseEvent *event)
     QMainWindow::mousePressEvent(event);
 }
 
+//关闭事件
 void CustomWindow::closeEvent(QCloseEvent *event)
 {
     m_client.disconnectServer();
@@ -489,6 +524,7 @@ double CustomWindow::calculateDroneDirection(const QString &uid) const
     return 0.0;
 }
 
+//计算无人机速度
 double CustomWindow::calculateDroneSpeed(const QString &uid) const
 {
     if (m_dronesInfo.contains(uid)) {
@@ -497,6 +533,7 @@ double CustomWindow::calculateDroneSpeed(const QString &uid) const
     return 0.0;
 }
 
+//计算无人机距离
 double CustomWindow::calculateDroneDistance(const QString &uid) const
 {
     if (m_dronesInfo.contains(uid)) {
@@ -506,6 +543,7 @@ double CustomWindow::calculateDroneDistance(const QString &uid) const
     return 0.0;
 }
 
+//计算无人机到最近目标的距离
 double CustomWindow::calculateDistanceToNearestTarget(double x, double y, const QString &uid) const
 {
     double minDistance = 1000.0; // 默认距离
@@ -534,6 +572,7 @@ double CustomWindow::calculateDistanceToNearestTarget(double x, double y, const 
     return minDistance;
 }
 
+//重置所有数据
 void CustomWindow::resetAllData()
 {
     qDebug() << "CUSTOM WINDOW RESET ALL DATA - GAME FINISHED";
@@ -553,5 +592,5 @@ void CustomWindow::resetAllData()
     m_currentDroneId = 1;
     m_selectedDroneId = "B1";
 
-    qDebug() << "CUSTOM WINDOW RESET COMPLETE - GAME STATE:" << m_gameStage;
+    //qDebug() << "CUSTOM WINDOW RESET COMPLETE - GAME STATE:" << m_gameStage;
 }

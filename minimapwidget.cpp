@@ -204,7 +204,8 @@ void MinimapWidget::drawDrones(QPainter &painter)
         
         // 选择颜色，根据无人机状态选择颜色
         // 选中无人机颜色，橙色
-        // 血量为0的无人机颜色，白色
+        // 血量为0且在线：白色（被击毁）
+        // 血量为0且离线：灰色（敌机未知）
         // 离线无人机颜色，灰色
         // 蓝队无人机颜色，蓝色
         // 红队无人机颜色，红色
@@ -212,8 +213,13 @@ void MinimapWidget::drawDrones(QPainter &painter)
         if (drone.id == m_selectedDrone) {
             droneColor = m_selectedColor;
         } else if (drone.hp <= 0) {
-            // 血量为0的无人机使用白色
-            droneColor = Qt::white;
+            if (drone.online) {
+                // 血量为0且在线：白色（被击毁）
+                droneColor = Qt::white;
+            } else {
+                // 血量为0且离线：灰色（敌机未知）
+                droneColor = m_offlineColor;
+            }
         } else if (!drone.online) {
             droneColor = m_offlineColor;
         } else if (drone.team == "B") {

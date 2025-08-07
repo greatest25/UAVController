@@ -196,7 +196,7 @@ void FlightControlWidget::drawFlightInfo(QPainter &painter)
     painter.setFont(compactFont);
     painter.setPen(m_textColor);
 
-    int y = 55;        // 调整起始位置，将信息栏再往下移动
+    int y = 60;        // 调整起始位置，将信息栏再往下移动
     int lineHeight = 16; // 增加行高，让垂直间距更大
 
     // 绘制飞行数据
@@ -233,7 +233,7 @@ QString FlightControlWidget::getDirectionText(double angle) const
 void FlightControlWidget::drawHealthIndicator(QPainter &painter)
 {
     // 将血条放在下拉条下方，与下拉框x坐标对齐，增加间距
-    QRect healthRect(width() - 70, 35, 55, 15);  // 调整宽度与下拉框一致(55像素)
+    QRect healthRect(width() -145, 32, 60, 15);  // 调整宽度与下拉框一致(55像素)
 
     // 绘制血量条外框
     painter.setPen(QPen(m_textColor, 1));
